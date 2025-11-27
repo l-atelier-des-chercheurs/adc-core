@@ -6,6 +6,7 @@ const server = require("./server"),
   dev = require("./dev-log"),
   cache = require("./cache"),
   cacheManager = require("./cache-manager"),
+  binCleanup = require("./bin-cleanup"),
   utils = require("./utils"),
   paths = require("./paths"),
   auth = require("./auth"),
@@ -175,6 +176,13 @@ async function setupApp() {
   });
 
   auth.createSuperadminToken();
+
+  // Initialize bin cleanup module (runs periodically to remove old bin items)
+  await binCleanup.init();
+  journal.log({
+    message: "Bin cleanup module initialized",
+    from: "main2",
+  });
 
   const port = await portscanner
     .findAPortNotInUse(
