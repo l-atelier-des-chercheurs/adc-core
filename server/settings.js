@@ -21,7 +21,8 @@ module.exports = (function () {
       if (!global.is_electron) {
         throw new Error(`option_only_available_in_electron`);
       }
-      global.electron.saveNewPathToUserContent({ path: new_path });
+      const electron = require("../electron/electron");
+      electron.saveNewPathToUserContent({ path: new_path });
     },
     getStoragePath: async () => {
       return await _getStoragePath();
