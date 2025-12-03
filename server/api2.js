@@ -186,7 +186,6 @@ module.exports = (function () {
         "/_api2/:folder_type/:folder_slug/:sub_folder_type/:sub_folder_slug/:subsub_folder_type/:subsub_folder_slug/:meta_filename/_copy",
       ],
       _generalPasswordCheck,
-      _restrictToContributors,
       _copyFile
     );
 
