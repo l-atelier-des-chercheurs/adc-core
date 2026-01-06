@@ -391,7 +391,7 @@ module.exports = (function () {
   async function _checkGeneralPassword(req, res, next) {
     dev.logapi();
     await _generalPasswordCheck(req, res);
-    return res.status(200).send();
+    return res.status(200).json({ code: "success" });
   }
   async function _checkToken(req, res, next) {
     dev.logapi();
@@ -407,7 +407,7 @@ module.exports = (function () {
     } catch (err) {
       return res.status(401).send({ code: err.code });
     }
-    return res.status(200).send();
+    return res.status(200).json({ code: "success" });
   }
 
   async function _canContributeToFolder({ path_to_type, path_to_folder, req }) {
