@@ -32,9 +32,8 @@ module.exports = (function () {
           path_to_folder,
           detailed,
         }).catch((err) => {
-          if (err.code === "ENOENT")
-            dev.error(`Failed to get folder`, err.message);
-          else throw err;
+          dev.error(`Failed to get folder`, err.message);
+          return null;
         });
         if (folder_meta) all_folders_with_meta.push(folder_meta);
 
