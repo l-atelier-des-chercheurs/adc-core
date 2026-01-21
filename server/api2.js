@@ -12,7 +12,8 @@ const folder = require("./folder"),
   auth = require("./auth"),
   users = require("./users"),
   journal = require("./journal"),
-  recoverPassword = require("./recover-password");
+  recoverPassword = require("./recover-password"),
+  dev = require("./dev-log");
 
 module.exports = (function () {
   const API = {
