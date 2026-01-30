@@ -17,12 +17,27 @@ async function runExitCleanup() {
   dev.log("Running exit cleanup...");
 
   try {
-    binCleanup.onExit();
-    await cacheManager.onExit();
-    ffmpegTracker.onExit();
+    try {
+      binCleanup.onExit();
+    } catch (err) {
+      dev.error("Error during bin cleanup:", err);
+    }
+
+    try {
+      await cacheManager.onExit();
+    } catch (err) {
+      dev.error("Error during cache cleanup:", err);
+    }
+
+    try {
+      ffmpegTracker.onExit();
+    } catch (err) {
+      dev.error("Error during ffmpeg cleanup:", err);
+    }
+
     dev.log("Exit cleanup completed");
   } catch (err) {
-    dev.error("Error during exit cleanup:", err);
+    dev.error("Error during exit cleanup wrapper:", err);
   }
 }
 
