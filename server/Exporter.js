@@ -524,6 +524,11 @@ class Exporter {
           );
           await fs.copy(full_path_to_client_dist, destination_path);
 
+          // cleanup unused files
+          await fs.remove(path.join(destination_path, "bundle.js"));
+          await fs.remove(path.join(destination_path, "build.js"));
+          await fs.remove(path.join(destination_path, "assets"));
+
           this._notifyProgress(80);
 
           // ZIP folder
