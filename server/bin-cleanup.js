@@ -67,7 +67,7 @@ module.exports = (function () {
     },
 
     onExit() {
-      dev.log("Stopping bin cleanup interval...");
+      dev.logverbose("Stopping bin cleanup interval...");
       API.stopCleanupInterval();
     },
   };
