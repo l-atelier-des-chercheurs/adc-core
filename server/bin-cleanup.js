@@ -18,13 +18,6 @@ module.exports = (function () {
 
       // Initial bin cleanup
       await this.cleanupBins();
-
-      // Set up process exit handlers for Node.js
-      if (!global.is_electron) {
-        process.on("SIGINT", this.handleExit);
-        process.on("SIGTERM", this.handleExit);
-        process.on("exit", this.handleExit);
-      }
     },
 
     stopCleanupInterval() {
@@ -73,7 +66,7 @@ module.exports = (function () {
       }
     },
 
-    handleExit: async () => {
+    onExit() {
       dev.log("Stopping bin cleanup interval...");
       API.stopCleanupInterval();
     },

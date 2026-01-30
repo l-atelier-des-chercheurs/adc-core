@@ -7,6 +7,7 @@ const server = require("./server"),
   cache = require("./cache"),
   cacheManager = require("./cache-manager"),
   binCleanup = require("./bin-cleanup"),
+  exitHandler = require("./exit-handler"),
   utils = require("./utils"),
   paths = require("./paths"),
   auth = require("./auth"),
@@ -183,6 +184,9 @@ async function setupApp() {
     message: "Bin cleanup module initialized",
     from: "main2",
   });
+
+  // Centralized exit handler (bin cleanup, cache manager, ffmpeg tracker)
+  exitHandler.init();
 
   const port = await portscanner
     .findAPortNotInUse(

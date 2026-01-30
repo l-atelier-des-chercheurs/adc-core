@@ -23,13 +23,6 @@ module.exports = (function () {
 
       // Initial cache cleanup
       await this.cleanupCache();
-
-      // Set up process exit handlers for Node.js
-      if (!global.is_electron) {
-        process.on("SIGINT", this.handleExit);
-        process.on("SIGTERM", this.handleExit);
-        process.on("exit", this.handleExit);
-      }
     },
 
     async cleanup() {
@@ -80,11 +73,10 @@ module.exports = (function () {
       }
     },
 
-    handleExit: async () => {
-      dev.log("Handling process exit...");
+    async onExit() {
+      dev.log("Stopping cache cleanup interval and cleaning up...");
       API.stopCleanupInterval();
       await API.cleanup();
-      process.exit(0);
     },
   };
 
