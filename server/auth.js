@@ -211,6 +211,25 @@ module.exports = (function () {
       });
       API.updateTokensFile();
     },
+    async removeAllTokensForFolderExcept({ token_path, except_token }) {
+      const normalized_path = utils.convertToSlashPath(token_path);
+      let revoked_count = 0;
+      Object.entries(tokens).forEach(([token, token_data]) => {
+        if (
+          token_data.token_path === normalized_path &&
+          token !== except_token
+        ) {
+          delete tokens[token];
+          revoked_count++;
+        }
+      });
+      if (revoked_count > 0) {
+        await API.updateTokensFile();
+        console.log(
+          `Revoked ${revoked_count} token(s) for folder after password change`
+        );
+      }
+    },
     getTokenData(token) {
       if (!tokens.hasOwnProperty(token)) {
         throw new Error("token_does_not_exist");

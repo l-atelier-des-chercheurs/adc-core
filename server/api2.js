@@ -975,7 +975,7 @@ module.exports = (function () {
       path_to_folder = "",
       data,
     } = utils.makePathFromReq(req);
-    const { token_path } = JSON.parse(req.headers.authorization);
+    const { token, token_path } = JSON.parse(req.headers.authorization);
     const update_cover = req.query?.cover !== undefined;
 
     dev.logapi({ path_to_folder, data, update_cover });
@@ -1007,7 +1007,13 @@ module.exports = (function () {
       // 6. Notify subscribers (after response)
       _notifyFolderUpdated(path_to_type, path_to_folder, changed_data);
 
-      // TODO if $password is updated successfully, then revoke all tokens except current
+      // 7. If password was changed, revoke all other tokens for this folder (force re-login on other devices)
+      if (changed_data && Object.prototype.hasOwnProperty.call(changed_data, "$password")) {
+        await auth.removeAllTokensForFolderExcept({
+          token_path,
+          except_token: token,
+        });
+      }
     } catch (err) {
       _handleUpdateFolderError(err, res, { path_to_folder, token_path });
     }
