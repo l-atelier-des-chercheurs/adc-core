@@ -1,6 +1,5 @@
 const path = require("path"),
   fs = require("fs-extra"),
-  pad = require("pad-left"),
   writeFileAtomic = require("write-file-atomic"),
   { v4: uuidv4 } = require("uuid");
 
@@ -303,7 +302,7 @@ class Exporter {
       const source = utils.getPathToUserContent(path_to_image);
       const destination = path.join(
         full_path_to_folder_in_cache,
-        "img-" + pad(index, 4, "0") + ".jpeg"
+        "img-" + String(index).padStart(4, "0") + ".jpeg"
       );
 
       await utils.convertAndCopyImage({
