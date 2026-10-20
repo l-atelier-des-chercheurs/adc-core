@@ -14,7 +14,7 @@ adc-core is not published on npm: apps install it from the git tags of this repo
 }
 ```
 
-Use the `git+https://` form, not `github:`: npm would store a `git+ssh://` URL in the lockfile, which fails in CI and Docker without an SSH key. Installing needs `git`. The app's lockfile pins the exact commit: `npm update adc-core` moves to the latest tag in the range.
+The app's lockfile pins the exact commit: `npm update adc-core` moves to the latest tag in the range. npm stores a `git+ssh://` URL there, but as long as this repo is public, `npm ci` downloads the commit's tarball over HTTPS, without an SSH key or `git`. `git` is only needed to resolve the range (`npm install` without a lockfile, `npm update`).
 
 ```js
 // the app's index.js
