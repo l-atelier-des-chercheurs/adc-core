@@ -3,9 +3,9 @@
  * Tests all major endpoints defined in api2.js
  *
  * Usage:
- *   node packages/adc-core/server/tests/test-api2.js
- *   DEBUG=1 node packages/adc-core/server/tests/test-api2.js    # Enable debug output
- *   VERBOSE=1 node packages/adc-core/server/tests/test-api2.js  # Enable verbose error output
+ *   node server/tests/test-api2.js
+ *   DEBUG=1 node server/tests/test-api2.js    # Enable debug output
+ *   VERBOSE=1 node server/tests/test-api2.js  # Enable verbose error output
  *
  * Note: Make sure the dodoc server is running before executing tests
  *       Start server with: npm start

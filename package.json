@@ -4,7 +4,18 @@
   "description": "Server core shared by do•doc, slashdoc and Les Cahiers",
   "author": "L’Atelier des Chercheurs <https://latelier-des-chercheurs.fr/>",
   "license": "AGPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/l-atelier-des-chercheurs/adc-core.git"
+  },
   "main": "server/index.js",
+  "files": [
+    "server",
+    "!server/tests",
+    "electron",
+    "shared",
+    "CHANGELOG.md"
+  ],
   "bin": {
     "adc-electron": "electron/cli.js"
   },

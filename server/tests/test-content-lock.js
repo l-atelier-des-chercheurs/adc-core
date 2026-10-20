@@ -2,7 +2,7 @@
  * content-lock tests
  *
  * Usage:
- *   node --test packages/adc-core/server/tests/test-content-lock.js
+ *   node --test server/tests/test-content-lock.js
  */
 
 const test = require("node:test");

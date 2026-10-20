@@ -1,0 +1,37 @@
+name: Checks
+
+# Installs the core alone, as an app would (no devDependencies, no Electron),
+# then loads the server modules and runs the tests that need no app.
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+      # Electron is only installed on demand by `adc-electron install`
+      - name: Install
+        run: npm install --omit=dev --no-package-lock
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: "true"
+      - name: Electron is not installed
+        run: |
+          if [ -d node_modules/electron ] || [ -d electron/node_modules ]; then
+            echo "❌ electron was installed: it must only be listed in electron/package.json"
+            exit 1
+          fi
+      - name: Runtime check
+        run: node -e "require('./server/runtime-check')()"
+      - name: Load server modules
+        run: node -e "require('./server/main2'); require('./server/api2'); require('./server/server')"
+      - name: Content lock tests
+        run: node --test server/tests/test-content-lock.js

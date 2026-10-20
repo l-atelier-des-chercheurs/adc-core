@@ -24,8 +24,6 @@ files:
   - "**/*"
   - "!client/node_modules/**"
   - "!electron/dist/**"
-  # adc-core is a workspace: it is already copied into node_modules/adc-core
-  - "!packages/**"
   # Electron itself and its build tools, see ./package.json
   - "!node_modules/adc-core/electron/node_modules/**"
   - "!node_modules/puppeteer/**"
