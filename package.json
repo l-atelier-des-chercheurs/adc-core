@@ -1,6 +1,6 @@
 {
   "name": "adc-core",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Server core shared by do•doc, slashdoc and Les Cahiers",
   "author": "L’Atelier des Chercheurs <https://latelier-des-chercheurs.fr/>",
   "license": "AGPL-3.0-only",
