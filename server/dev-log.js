@@ -6,10 +6,11 @@ module.exports = dev = (function () {
   let isDebugMode = false;
   let isVerboseMode = false;
   let isLivereload = false;
+  let fakePresenceCount = 0;
 
   const API = {
-    init: ({ debug, verbose, livereload }) => {
-      return initModule({ debug, verbose, livereload });
+    init: ({ debug, verbose, livereload, fake_presence }) => {
+      return initModule({ debug, verbose, livereload, fake_presence });
     },
     space: space,
     log: log,
@@ -23,14 +24,16 @@ module.exports = dev = (function () {
     performance: performance,
     isDebug: () => isDebugMode,
     isLivereload: () => isLivereload,
+    fakePresenceCount: () => fakePresenceCount,
   };
 
-  function initModule({ debug, verbose, livereload }) {
+  function initModule({ debug, verbose, livereload, fake_presence = 0 }) {
     isDebugMode = debug;
     isVerboseMode = verbose;
     isLivereload = livereload;
+    fakePresenceCount = fake_presence;
     console.log(
-      `Init module with debug = ${debug} verbose = ${verbose} livereload = ${isLivereload}`
+      `Init module with debug = ${debug} verbose = ${verbose} livereload = ${isLivereload} fake_presence = ${fakePresenceCount}`
     );
 
     if (isDebugMode) {

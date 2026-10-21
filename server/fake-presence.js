@@ -1,6 +1,6 @@
 // DEV ONLY — fills presence with fake tabs to review the UI
-// enabled with --debug, DODOC_FAKE_PRESENCE=<number of fake browsers>
-// (defaults to 6, set to 0 to disable), e.g. DODOC_FAKE_PRESENCE=10 npm run debug
+// enabled with --debug --fake-presence (6 fake browsers) or
+// --fake-presence=<number of fake browsers>, e.g. npm run debug-presence
 const { randomUUID } = require("crypto");
 
 const dev = require("./dev-log"),
@@ -10,15 +10,10 @@ const dev = require("./dev-log"),
 
 module.exports = (function () {
   const MOVE_EVERY_MS = 8000;
-  const DEFAULT_COUNT = 6;
 
   async function init() {
     if (!dev.isDebug()) return;
-    const env_count = process.env.DODOC_FAKE_PRESENCE;
-    const count =
-      env_count === undefined || env_count === ""
-        ? DEFAULT_COUNT
-        : Number(env_count);
+    const count = dev.fakePresenceCount();
     if (!count) return;
 
     // accounts are authors in every dodoc-based tool

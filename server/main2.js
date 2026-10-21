@@ -74,11 +74,18 @@ module.exports = async function start({
   const verbose = process.argv.length > 0 && process.argv.includes("--verbose");
   const livereload =
     process.argv.length > 0 && process.argv.includes("--livereload");
+  // --fake-presence or --fake-presence=<number of fake browsers>, see fake-presence.js
+  const fake_presence_arg = process.argv.find(
+    (arg) => arg === "--fake-presence" || arg.startsWith("--fake-presence=")
+  );
+  const fake_presence = fake_presence_arg
+    ? Number(fake_presence_arg.split("=")[1] ?? 6) || 0
+    : 0;
 
   // Initialize dev logger
-  dev.init({ debug, verbose, livereload });
+  dev.init({ debug, verbose, livereload, fake_presence });
   journal.log({
-    message: `Debug mode: ${debug}, verbose: ${verbose}, livereload: ${livereload}`,
+    message: `Debug mode: ${debug}, verbose: ${verbose}, livereload: ${livereload}, fake presence: ${fake_presence}`,
     from: "main2",
   });
 
