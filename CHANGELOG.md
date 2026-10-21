@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.1
 
 - Fake presence is off by default in debug mode: it needs `--fake-presence` (6 fake browsers) or `--fake-presence=<count>`, with `--debug`. `DODOC_FAKE_PRESENCE` is gone. Apps get a `debug-presence` npm script.
 
