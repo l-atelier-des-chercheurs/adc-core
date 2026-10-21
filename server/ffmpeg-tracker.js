@@ -4,7 +4,7 @@ const ffmpegPath = require("ffmpeg-static").replace(
   "app.asar",
   "app.asar.unpacked"
 );
-const ffprobePath = require("ffprobe-static").path.replace(
+const ffprobePath = require("@derhuerst/ffprobe-static").replace(
   "app.asar",
   "app.asar.unpacked"
 );
