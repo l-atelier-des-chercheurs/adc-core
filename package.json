@@ -19,6 +19,9 @@
   "bin": {
     "adc-electron": "electron/cli.js"
   },
+  "scripts": {
+    "postversion": "git push --atomic origin HEAD \"v$npm_package_version\""
+  },
   "engines": {
     "node": ">=24.22.0 <25"
   },
