@@ -23,7 +23,7 @@
     "postversion": "git push --atomic origin HEAD \"v$npm_package_version\""
   },
   "engines": {
-    "node": ">=24.22.0 <25"
+    "node": ">=24.22.1 <25"
   },
   "dependencies": {
     "@cantoo/pdf-lib": "^2.11.1",
