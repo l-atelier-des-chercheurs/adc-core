@@ -33,5 +33,6 @@ jobs:
         run: node -e "require('./server/runtime-check')()"
       - name: Load server modules
         run: node -e "require('./server/main2'); require('./server/api2'); require('./server/server')"
-      - name: Content lock tests
-        run: node --test server/tests/test-content-lock.js
+      # Same tests as `npm version` runs before tagging (preversion)
+      - name: Unit tests
+        run: npm test

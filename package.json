@@ -21,6 +21,8 @@
     "adc-electron": "electron/cli.js"
   },
   "scripts": {
+    "test": "node --test server/tests/test-content-lock.js server/tests/test-meta-utils.js",
+    "preversion": "npm test",
     "postversion": "git push --atomic origin HEAD \"v$npm_package_version\""
   },
   "engines": {

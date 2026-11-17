@@ -3,6 +3,7 @@
 ## 0.2.5
 
 - New schema field type `datetime`, next to `date`: it keeps the time. It accepts an ISO 8601 string or a millisecond timestamp (number or digit string) and is stored like `$date_created`, as a TOML datetime in UTC with milliseconds (`2026-11-17T13:32:05.250Z`). An empty value is stored as `""`; an unreadable one is refused with `invalid_date_field`, like `date`. `date` is unchanged and still stores `YYYY-MM-DD`.
+- `npm test` runs the unit tests (`node:test`, no dependency): content lock, and schema field types in `validateMeta`. `npm version` runs it first and stops before tagging if a test fails, and the Checks workflow runs it on every push.
 
 ## 0.2.3
 
