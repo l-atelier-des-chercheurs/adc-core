@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.3
 
 - `$can_be_created_by` (`everyone` / `logged-in`) only applies to creating a folder of that type (`_create`, `_import`). It no longer lets anyone, or any logged-in author, upload, edit or remove files in every folder of that type, nor read the private ones. Those follow the folder's `$contributors` / `$admins` again.
 - Copying a folder to another type (`_copy`) or remixing it (`_remix`) now follows the destination type's `$can_be_created_by`, like `_create`.
