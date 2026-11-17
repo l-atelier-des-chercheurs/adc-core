@@ -44,7 +44,7 @@ With a link, the core uses its own `node_modules`: run `npm run install:electron
 
 ## Release
 
-1. Bump `version` in `package.json` and add an entry to `CHANGELOG.md`, commit, then tag and push: `git tag v0.2.0 && git push --follow-tags`. Never move a published tag.
+1. Add an entry to `CHANGELOG.md` and commit it, then run `npm version patch` (or `minor`) on a clean tree. It bumps `package.json`, commits as `CORE / vX.Y.Z`, tags `vX.Y.Z` and pushes the commit and tag. Never move a published tag. Don't run `npm publish`: the package is `private`.
 2. In each app, run `npm update adc-core` (or change the range in `package.json` for a breaking 0.x version), and commit the lockfile.
 
 Node is pinned in `.nvmrc` for CI, within `engines.node`. Electron is pinned exactly in `electron/package.json`, and its embedded Node must match the apps' `.nvmrc` (checked by do•doc's `scripts/check-versions.js`).
