@@ -251,7 +251,7 @@ module.exports = (function () {
         "/_api2/:folder_type/:folder_slug/:sub_folder_type/:sub_folder_slug/:subsub_folder_type/_create",
       ],
       _generalPasswordCheck,
-      _restrictToContributors,
+      _restrictToFolderCreators,
       _createFolder
     );
     app.post(
@@ -261,7 +261,7 @@ module.exports = (function () {
         "/_api2/:folder_type/:folder_slug/:sub_folder_type/:sub_folder_slug/:subsub_folder_type/_import",
       ],
       _generalPasswordCheck,
-      _restrictToContributors,
+      _restrictToFolderCreators,
       _importFolder
     );
 
@@ -515,18 +515,28 @@ module.exports = (function () {
     return res.status(200).json({ code: "success" });
   }
 
-  async function _canContributeToFolder({ path_to_type, path_to_folder, req }) {
+  // can this request create a folder of path_to_type, inside path_to_folder
+  // (the parent folder, "." at the root)?
+  // The schema's $can_be_created_by only applies here: it never opens the
+  // folders of that type, their files or their private content.
+  async function _canCreateFolder({ path_to_type, path_to_folder, req }) {
     dev.logapi();
 
-    if (path_to_type && auth.canFolderBeCreatedByAll({ path_to_type }))
-      return "Folder contribution allowed to all according to schema";
+    if (auth.canFolderBeCreatedByAll({ path_to_type }))
+      return "Folder creation allowed to all according to schema";
 
-    if (path_to_type && auth.canFolderBeCreatedByLoggedIn({ path_to_type })) {
+    if (auth.canFolderBeCreatedByLoggedIn({ path_to_type })) {
       const token_path = auth.extractAndCheckToken({ req });
       if (token_path)
-        return "Folder contribution allowed to logged-in users according to schema";
+        return "Folder creation allowed to logged-in users according to schema";
       return false;
     }
+
+    return _canContributeToFolder({ path_to_folder, req });
+  }
+
+  async function _canContributeToFolder({ path_to_folder, req }) {
+    dev.logapi();
 
     if (
       (await auth.isFolderOpenedToAll({
@@ -616,11 +626,10 @@ module.exports = (function () {
   }
 
   async function _restrictToContributors(req, res, next) {
-    const { path_to_type, path_to_folder } = utils.makePathFromReq(req);
+    const { path_to_folder } = utils.makePathFromReq(req);
     dev.logapi({ path_to_folder });
 
     const allowed = await _canContributeToFolder({
-      path_to_type,
       path_to_folder,
       req,
     });
@@ -632,6 +641,24 @@ module.exports = (function () {
       dev.error(`not allowed to contribute to folder ${path_to_folder}`);
       if (res) return res.status(403).send({ code: "not_allowed" });
       return false;
+    }
+  }
+  async function _restrictToFolderCreators(req, res, next) {
+    const { path_to_type, path_to_folder } = utils.makePathFromReq(req);
+    dev.logapi({ path_to_type, path_to_folder });
+
+    const allowed = await _canCreateFolder({
+      path_to_type,
+      path_to_folder,
+      req,
+    });
+
+    if (allowed) {
+      dev.log(allowed);
+      return next();
+    } else {
+      dev.error(`not allowed to create folder in ${path_to_type}`);
+      return res.status(403).send({ code: "not_allowed" });
     }
   }
   async function _restrictToLocalAdmins(req, res, next) {
@@ -672,7 +699,7 @@ module.exports = (function () {
   }
 
   async function _restrictIfPrivate(req, res, next) {
-    const { path_to_type, path_to_folder } = utils.makePathFromReq(req);
+    const { path_to_folder } = utils.makePathFromReq(req);
     dev.logapi({ path_to_folder });
 
     try {
@@ -685,7 +712,6 @@ module.exports = (function () {
       } else dev.logverbose("Folder is private");
 
       const allowed = await _canContributeToFolder({
-        path_to_type,
         path_to_folder,
         req,
       });
@@ -1418,7 +1444,6 @@ module.exports = (function () {
         });
         if (!folder_is_private) return true;
         return _canContributeToFolder({
-          path_to_type,
           path_to_folder,
           req,
         });
@@ -1609,7 +1634,8 @@ module.exports = (function () {
         const path_to_parent_folder = utils.getContainingFolder(
           path_to_destination_type
         );
-        const allowed = await _canContributeToFolder({
+        const allowed = await _canCreateFolder({
+          path_to_type: path_to_destination_type,
           path_to_folder: path_to_parent_folder,
           req,
         });
@@ -2050,7 +2076,8 @@ module.exports = (function () {
       const path_to_parent_folder = utils.getContainingFolder(
         path_to_destination_type
       );
-      const allowed = await _canContributeToFolder({
+      const allowed = await _canCreateFolder({
+        path_to_type: path_to_destination_type,
         path_to_folder: path_to_parent_folder,
         req,
       });

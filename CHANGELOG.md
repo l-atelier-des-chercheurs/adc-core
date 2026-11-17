@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- `$can_be_created_by` (`everyone` / `logged-in`) only applies to creating a folder of that type (`_create`, `_import`). It no longer lets anyone, or any logged-in author, upload, edit or remove files in every folder of that type, nor read the private ones. Those follow the folder's `$contributors` / `$admins` again.
+- Copying a folder to another type (`_copy`) or remixing it (`_remix`) now follows the destination type's `$can_be_created_by`, like `_create`.
+
 ## 0.2.2
 
 - Request bodies are never decompressed (`express.json({ inflate: false })`): Node < 24.22.1 has an RCE in its Brotli decoder (CVE-2026-111497). `engines.node` and `.nvmrc` move to 24.22.1.
