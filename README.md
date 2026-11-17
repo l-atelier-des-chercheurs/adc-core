@@ -29,6 +29,30 @@ require("adc-core").start({
 
 Electron is not a dependency: `adc-electron install` installs the exact version set in `electron/package.json`, inside `node_modules/adc-core/electron/node_modules`. Run it again after each `npm install` / `npm ci` that reinstalls adc-core.
 
+### Install scripts (`allowScripts`)
+
+npm 11 (Node 24) checks dependencies' install scripts (`preinstall`, `install`, `postinstall`) against the `allowScripts` field of the root `package.json`. For now it only warns about unreviewed ones; a future npm release will skip them. npm reads that field from the app's `package.json` only, never from adc-core's, so each app has to approve adc-core's dependencies itself:
+
+```json
+"allowScripts": {
+  "ffmpeg-static": true,
+  "@derhuerst/ffprobe-static": true,
+  "sharp": true,
+  "puppeteer": true,
+  "fast-folder-size": true,
+  "bufferutil": true
+}
+```
+
+- `ffmpeg-static` and `@derhuerst/ffprobe-static` download the ffmpeg / ffprobe binaries, and `sharp` its native binary: without them, media processing fails.
+- `puppeteer` downloads Chrome, used for PDF / PNG exports, screenshots and thumbnails (skipped anyway with `PUPPETEER_SKIP_DOWNLOAD`).
+- `fast-folder-size` downloads Sysinternals `du` on Windows, for folder sizes.
+- `bufferutil` builds an optional native module for `ws`; without it, `ws` falls back to plain JavaScript.
+
+These entries are name-only: they allow any version, so `npm update adc-core` never leaves a dependency unapproved. `npm install-scripts approve <pkg>` writes pinned entries instead (`sharp@0.34.5`), to review again on each update. Run `npm install-scripts ls` in the app to list what is still unreviewed, including the app's own dependencies.
+
+`adc-electron install` is the exception: it installs into `node_modules/adc-core/electron` with that folder as the root, so there npm reads `electron/package.json` from this repo. Of its dependencies, only `electron-winstaller` (used by electron-builder for the `squirrel.windows` target) has an install script.
+
 ## Develop the core with an app
 
 Link your local clone into the app, then go back to the tag before committing the app:

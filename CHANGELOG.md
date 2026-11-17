@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.6
+
+- README: which of adc-core's dependencies each app should list in its `allowScripts` (npm 11 install script approvals), and why.
+
 ## 0.2.5
 
 - New schema field type `datetime`, next to `date`: it keeps the time. It accepts an ISO 8601 string or a millisecond timestamp (number or digit string) and is stored like `$date_created`, as a TOML datetime in UTC with milliseconds (`2026-11-17T13:32:05.250Z`). An empty value is stored as `""`; an unreadable one is refused with `invalid_date_field`, like `date`. `date` is unchanged and still stores `YYYY-MM-DD`.
