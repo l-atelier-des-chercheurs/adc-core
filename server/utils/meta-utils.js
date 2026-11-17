@@ -73,6 +73,29 @@ module.exports = function createMetaUtils(API) {
       if (Number.isNaN(parsed.getTime())) return null;
       return API.formatCalendarDateFromDate(parsed);
     },
+    /**
+     * Normalize a user-editable date and time to a Date, stored like
+     * $date_created (TOML datetime, UTC with milliseconds).
+     * Accepts empty, a Date, a millisecond timestamp (number or digit string),
+     * or a parseable ISO 8601 string. Returns "" for empty, null when invalid.
+     */
+    normalizeDateTime(raw) {
+      if (raw === null || raw === undefined) return "";
+
+      let parsed;
+      if (raw instanceof Date) parsed = new Date(raw.getTime());
+      else if (typeof raw === "number") parsed = new Date(raw);
+      else {
+        const value = String(raw).trim();
+        if (!value) return "";
+        parsed = /^-?\d+$/.test(value)
+          ? new Date(Number(value))
+          : new Date(value);
+      }
+
+      if (Number.isNaN(parsed.getTime())) return null;
+      return parsed;
+    },
     formatCalendarDateFromDate(date) {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -216,9 +239,12 @@ module.exports = function createMetaUtils(API) {
             // TODO Validator
           } else if (
             new_meta.hasOwnProperty(field_name) &&
-            opt.type === "date"
+            (opt.type === "date" || opt.type === "datetime")
           ) {
-            const normalized = API.normalizeCalendarDate(new_meta[field_name]);
+            const normalized =
+              opt.type === "date"
+                ? API.normalizeCalendarDate(new_meta[field_name])
+                : API.normalizeDateTime(new_meta[field_name]);
             if (normalized === null) {
               const err = new Error(`Invalid date for field ${field_name}`);
               err.code = "invalid_date_field";
