@@ -7,6 +7,11 @@ const path = require("path"),
 
 sharp.cache(false);
 
+// sharp aborts on libjpeg warnings by default (failOn: "warning"), so slightly
+// malformed files (ex: "Invalid SOS parameters for sequential JPEG") get no
+// thumb although they decode fine: only fail on real errors
+const SHARP_INPUT_OPTIONS = { failOn: "error" };
+
 const IMAGE_EXTS_FOR_CREATION_DATE = new Set([
   ".jpg",
   ".jpeg",
@@ -141,7 +146,7 @@ module.exports = function createMediaUtils(API) {
       withoutEnlargement = false,
     }) {
       if (format === "png")
-        await sharp(full_path)
+        await sharp(full_path, SHARP_INPUT_OPTIONS)
           .rotate()
           .resize(resolution, resolution, {
             fit: "inside",
@@ -156,7 +161,7 @@ module.exports = function createMediaUtils(API) {
             throw err;
           });
       else
-        await sharp(full_path)
+        await sharp(full_path, SHARP_INPUT_OPTIONS)
           .rotate()
           .resize(resolution, resolution, {
             fit: "inside",
@@ -173,7 +178,7 @@ module.exports = function createMediaUtils(API) {
           });
     },
     async convertAndCopyImage({ source, destination, width, height }) {
-      await sharp(source)
+      await sharp(source, SHARP_INPUT_OPTIONS)
         .rotate()
         .flatten({ background: "white" })
         .resize(width, height, {
@@ -190,7 +195,7 @@ module.exports = function createMediaUtils(API) {
     },
 
     async getImageMetadata({ full_media_path }) {
-      return await sharp(full_media_path).metadata();
+      return await sharp(full_media_path, SHARP_INPUT_OPTIONS).metadata();
     },
 
     async imageBufferToFile({ image_buffer, full_path_to_thumb }) {
