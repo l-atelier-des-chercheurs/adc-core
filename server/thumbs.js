@@ -731,6 +731,8 @@ module.exports = (function () {
   }) {
     dev.logfunction({ full_media_path, full_path_to_thumb, page });
 
+    // one line per PDF thumb in verbose mode, saying which way it was made
+    const started_at = Date.now();
     if (await _isPdftoppmAvailable()) {
       try {
         await _makePDFThumbsWithPdftoppm({
@@ -738,14 +740,24 @@ module.exports = (function () {
           full_path_to_thumb,
           page,
         });
-        dev.logverbose(`Made PDF thumb with pdftoppm`, full_path_to_thumb);
+        dev.logverbose(`PDF thumb: made with pdftoppm`, {
+          full_media_path,
+          page,
+          duration_ms: Date.now() - started_at,
+        });
         return;
       } catch (err) {
-        dev.logverbose(`pdftoppm failed, falling back to webpreview`, {
+        dev.logverbose(`PDF thumb: pdftoppm failed, using the browser`, {
+          full_media_path,
+          page,
           message: err?.message || String(err),
         });
       }
-    }
+    } else
+      dev.logverbose(`PDF thumb: no pdftoppm, using the browser`, {
+        full_media_path,
+        page,
+      });
 
     try {
       await _captureMediaScreenshot({ full_media_path, full_path_to_thumb });
@@ -787,17 +799,21 @@ module.exports = (function () {
   async function _isPdftoppmAvailable() {
     if (typeof _has_pdftoppm === "boolean") return _has_pdftoppm;
 
+    // checked once: says which one is used, or why there is none
     try {
-      await _runProcess({
+      const { stdout, stderr } = await _runProcess({
         command: "pdftoppm",
         args: ["-v"],
         timeout_ms: 5000,
         allow_non_zero_exit: true,
       });
       _has_pdftoppm = true;
+      // "pdftoppm version 24.02.0", on stderr
+      const version = (stderr || stdout).split("\n")[0].trim();
+      dev.logverbose(`pdftoppm found, PDF thumbs will use it`, { version });
     } catch (err) {
       _has_pdftoppm = false;
-      dev.logverbose(`pdftoppm is not available`, {
+      dev.logverbose(`pdftoppm not found, PDF thumbs will use the browser`, {
         message: err?.message || String(err),
       });
     }

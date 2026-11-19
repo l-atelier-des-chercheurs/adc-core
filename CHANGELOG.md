@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.9
+
+- Verbose logs say how each PDF thumb is made: with `pdftoppm` (and how long it took), or with the browser because `pdftoppm` is missing or failed. Whether `pdftoppm` is found, and its version, is logged once, at the first PDF thumb.
+
 ## 0.2.7
 
 - JPEGs with decoder warnings (e.g. "Invalid SOS parameters for sequential JPEG") get a thumb again: sharp aborted on libjpeg warnings by default, it now only fails on real errors (`failOn: "error"`), for thumbs, image conversions and metadata.
