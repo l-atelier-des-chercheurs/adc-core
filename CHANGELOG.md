@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.7
+
+- JPEGs with decoder warnings (e.g. "Invalid SOS parameters for sequential JPEG") get a thumb again: sharp aborted on libjpeg warnings by default, it now only fails on real errors (`failOn: "error"`), for thumbs, image conversions and metadata.
+
 ## 0.2.6
 
 - README: which of adc-core's dependencies each app should list in its `allowScripts` (npm 11 install script approvals), and why.
