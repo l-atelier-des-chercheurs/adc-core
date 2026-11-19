@@ -262,3 +262,25 @@ test("browser fails too: no thumb, marked as no preview, not retried", async () 
   await makeThumb();
   assert.strictEqual(browser_calls.length, 1, "not tried again");
 });
+
+// Not a PDF, but the other browser fallback that used to exist: a 3D file
+// mesh-thumb can't read must not open the app's /_previewmedia page
+test("3D file mesh-thumb can't read: no thumb, no browser", async () => {
+  const { thumbPath } = await setup();
+  const path_to_folder = path.join("projects", "p1");
+  await fs.outputFile(
+    path.join(global.pathToUserContent, path_to_folder, "broken.stl"),
+    "solid nothing here\nendsolid\n"
+  );
+
+  const result = await require("../thumbs").makeThumbForMedia({
+    media_type: "stl",
+    media_filename: "broken.stl",
+    path_to_folder,
+  });
+
+  assert.strictEqual(browser_calls.length, 0);
+  assert.deepStrictEqual(result, {});
+  assert.ok(await fs.pathExists(thumbPath("broken.stl.0.png.no_preview")));
+  assert.ok(verbose_logs.includes("3D thumb: mesh-thumb failed, no thumb"));
+});

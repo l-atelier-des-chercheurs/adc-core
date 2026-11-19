@@ -699,6 +699,8 @@ module.exports = (function () {
   }) {
     dev.logfunction({ full_media_path, full_path_to_thumb, view_matrix });
 
+    // No browser fallback: a file mesh-thumb can't read (no triangles,
+    // invalid coordinates) gets no thumb (.no_preview)
     try {
       await meshThumb.makeThumb({
         full_media_path,
@@ -706,19 +708,12 @@ module.exports = (function () {
         media_type,
         view_matrix,
       });
-      dev.logverbose(`Made 3D thumb without browser`, full_path_to_thumb);
-      return;
+      dev.logverbose(`Made 3D thumb`, full_path_to_thumb);
     } catch (err) {
-      dev.logverbose(`mesh-thumb failed, falling back to webpreview`, {
+      dev.logverbose(`3D thumb: mesh-thumb failed, no thumb`, {
+        full_media_path,
         message: err?.message || String(err),
       });
-    }
-
-    try {
-      await _captureMediaScreenshot({ full_media_path, full_path_to_thumb });
-      return;
-    } catch (err) {
-      dev.error(err.message);
       throw err;
     }
   }
@@ -795,33 +790,6 @@ module.exports = (function () {
     }
   }
 
-  async function _captureMediaScreenshot({
-    full_media_path,
-    full_path_to_thumb,
-  }) {
-    dev.logfunction({ full_media_path, full_path_to_thumb });
-
-    const relative_path_from_server = full_media_path.replace(
-      utils.getPathToUserContent(),
-      ""
-    );
-    const encoded_full_media_path = encodeURIComponent(
-      relative_path_from_server
-    );
-    let url =
-      global.appInfos.homeURL +
-      "/_previewmedia?path_to_media=" +
-      encoded_full_media_path +
-      "&previewing_for=node";
-
-    try {
-      await webpreview.captureScreenshot({ url, full_path_to_thumb });
-      return;
-    } catch (err) {
-      dev.error(err);
-      throw new Error("failed to capture screenshot");
-    }
-  }
 
   async function _isPdftoppmAvailable() {
     if (typeof _has_pdftoppm === "boolean") return _has_pdftoppm;
