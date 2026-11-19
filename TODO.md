@@ -34,3 +34,11 @@ Started on 2026-11-17, then put aside. What was found:
 - `npm test`, then load the server modules as CI does.
 - Try by hand in an app: ZIP download (archiver), PDF / PNG export and thumbnails (puppeteer), image import (sharp), collaborative editing (sharedb), sending a mail (nodemailer), choosing a content folder in Electron (electron-store).
 - CHANGELOG entry, and an update to the `allowScripts` section of the README.
+
+## Client: catching up after a disconnection
+
+Noted on 2026-11-19, from Les Cahiers du Studio v3. The code is in the apps' client, not in this repository: dodoc's `client/src/adc-core/api.js` (`rejoinRooms`, `refreshStoreForRoom`, `markAllStoreStale`). Les Cahiers already does both points below, in `client-vue3/src/stores/content.js` (`refresh`).
+
+- **Rejoin the room, then fetch.** `rejoinRooms` fetches a room, then emits `joinRoom`. A change broadcast between the server's answer and the join is lost. Joining first, then fetching, leaves no gap: an event that is also in the fetched content is applied twice, which is harmless.
+- **Also fetch when the tab comes back.** After a phone's sleep, Socket.IO only notices the dead connection once its ping fails: up to about 45 s with the defaults (`pingInterval` 25 s + `pingTimeout` 20 s). Until then the page shows stale content while saying it is connected. On `visibilitychange`, if the tab was hidden for more than 30 s, fetch every subscribed room again, even if the socket looks connected.
+- Also worth it: fetch the rooms in parallel rather than one after the other, and run one catch-up at a time (a reconnection and a return to the tab often come together).
