@@ -234,7 +234,7 @@ module.exports = (function () {
   return {
     closeSharedBrowser,
 
-    captureScreenshot: async ({ url, full_path_to_thumb }) => {
+    captureScreenshot: async ({ url, full_path_to_thumb, wait_ms }) => {
       beginBrowserJob();
       let page;
       // Must not throw: an async timer rejection is unhandled and exits the app.
@@ -272,14 +272,23 @@ module.exports = (function () {
             throw err;
           });
 
-        dev.logverbose(
-          `Waiting for ${READY_FOR_EXPORT_EVENT} or ${CAPTURE_READY_WAIT_MS}ms`
-        );
-        await waitForReadyForExportOrTimeout(page, CAPTURE_READY_WAIT_MS);
+        if (wait_ms) {
+          dev.logverbose(`Waiting ${wait_ms}ms`);
+          await new Promise((r) => setTimeout(r, wait_ms));
+        } else {
+          dev.logverbose(
+            `Waiting for ${READY_FOR_EXPORT_EVENT} or ${CAPTURE_READY_WAIT_MS}ms`
+          );
+          await waitForReadyForExportOrTimeout(page, CAPTURE_READY_WAIT_MS);
+        }
 
         dev.logverbose(`Taking screenshot`);
         await page.screenshot({
           path: full_path_to_thumb,
+          // the default (true) captures differently, without what Chrome's
+          // PDF viewer draws: a blank grey thumb. The clip fits in the
+          // viewport anyway
+          captureBeyondViewport: false,
           clip: {
             x: x_padding,
             y: y_padding,

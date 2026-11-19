@@ -760,11 +760,38 @@ module.exports = (function () {
       });
 
     try {
-      await _captureMediaScreenshot({ full_media_path, full_path_to_thumb });
+      await _capturePDFInViewer({ full_media_path, full_path_to_thumb });
       return;
     } catch (err) {
       dev.error(err.message);
       throw err;
+    }
+  }
+
+  // The browser opens the PDF itself, in its own viewer: no page of the app
+  // needed. The viewer can't say when the page is drawn, hence a fixed wait,
+  // long enough for a headless Chrome just launched, making other thumbs
+  async function _capturePDFInViewer({ full_media_path, full_path_to_thumb }) {
+    dev.logfunction({ full_media_path, full_path_to_thumb });
+
+    const relative_path = path
+      .relative(utils.getPathToUserContent(), full_media_path)
+      .split(path.sep)
+      .map(encodeURIComponent)
+      .join("/");
+    // no toolbar, the whole first page, portrait or landscape
+    const url =
+      global.appInfos.homeURL + "/" + relative_path + "#toolbar=0&view=Fit";
+
+    try {
+      await webpreview.captureScreenshot({
+        url,
+        full_path_to_thumb,
+        wait_ms: 2_500,
+      });
+    } catch (err) {
+      dev.error(err);
+      throw new Error("failed to capture screenshot");
     }
   }
 

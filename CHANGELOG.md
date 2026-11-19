@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.10
+
+- PDF thumbs without `pdftoppm` (or when it fails) are no longer blank grey. Puppeteer's clipped screenshot left out what Chrome's PDF viewer draws: it now takes it with `captureBeyondViewport: false`.
+- That fallback no longer needs a `/_previewmedia` route in the app: the browser opens the PDF file itself (`#toolbar=0&view=Fit`, the whole first page, portrait or landscape) and waits 2.5s. STL/OBJ thumbs still go through `/_previewmedia`.
+- `webpreview.captureScreenshot` takes `wait_ms`: a fixed wait instead of the `READY_FOR_EXPORT` signal, for pages that can't send it.
+- Tests for PDF thumbs without `pdftoppm`. In `npm test`, with pdftoppm and the browser faked: which way is used (missing, failing or working pdftoppm), the URL given to the browser (no `/_previewmedia`, every path segment encoded, `#` and `?` included), the fixed wait, pdftoppm looked for once, the verbose logs, and a `.no_preview` file when the browser fails too. `npm run test:browser`, not in `npm test` nor in CI: a real Chrome opens portrait and landscape PDFs, and the capture must show the whole page, not a grey viewer.
+
 ## 0.2.9
 
 - Verbose logs say how each PDF thumb is made: with `pdftoppm` (and how long it took), or with the browser because `pdftoppm` is missing or failed. Whether `pdftoppm` is found, and its version, is logged once, at the first PDF thumb.

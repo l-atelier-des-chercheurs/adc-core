@@ -1,15 +1,17 @@
 module.exports = (function () {
   return {
-    captureScreenshot: async ({ url, full_path_to_thumb }) => {
-      dev.logfunction({ url, full_path_to_thumb });
+    // wait_ms: for pages that can't say they're ready (a PDF opened by the
+    // browser's own viewer), wait that long instead of the ready signal
+    captureScreenshot: async ({ url, full_path_to_thumb, wait_ms }) => {
+      dev.logfunction({ url, full_path_to_thumb, wait_ms });
 
       try {
         if (global.is_electron) {
           const electron = global.appElectron();
-          await electron.captureScreenshot({ url, full_path_to_thumb });
+          await electron.captureScreenshot({ url, full_path_to_thumb, wait_ms });
         } else {
           const puppeteer = require("./puppeteer");
-          await puppeteer.captureScreenshot({ url, full_path_to_thumb });
+          await puppeteer.captureScreenshot({ url, full_path_to_thumb, wait_ms });
         }
       } catch (err) {
         dev.error(err.message);

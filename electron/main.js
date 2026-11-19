@@ -222,8 +222,8 @@ module.exports = (function () {
         return picked[0];
       }
     },
-    captureScreenshot: async ({ url, full_path_to_thumb }) => {
-      dev.logfunction({ url, full_path_to_thumb });
+    captureScreenshot: async ({ url, full_path_to_thumb, wait_ms }) => {
+      dev.logfunction({ url, full_path_to_thumb, wait_ms });
 
       let win;
 
@@ -236,7 +236,10 @@ module.exports = (function () {
       try {
         await Promise.race([
           (async () => {
-            win = await _loadWebpage({ url });
+            // a fixed wait: a square, as Puppeteer's 800×800 clip
+            win = wait_ms
+              ? await _loadWebpage({ url, width: 800, height: 800, wait_ms })
+              : await _loadWebpage({ url });
             const image = await win.webContents.capturePage();
             closeWin();
             await writeFileAtomic(full_path_to_thumb, image.toPNG(1.0));
@@ -435,7 +438,7 @@ module.exports = (function () {
     });
   }
 
-  async function _loadWebpage({ url, width = 1600, height = 900 }) {
+  async function _loadWebpage({ url, width = 1600, height = 900, wait_ms }) {
     const win = new BrowserWindow({
       width: width,
       height: height,
@@ -458,6 +461,10 @@ module.exports = (function () {
     try {
       await new Promise((resolve, reject) => {
         win.webContents.once("did-finish-load", async () => {
+          if (wait_ms) {
+            await new Promise((r) => setTimeout(r, wait_ms));
+            return resolve();
+          }
           const ready_wait_ms = 15_000;
           const settle_ms = 400;
           const event_name_json = JSON.stringify("READY_FOR_EXPORT");
