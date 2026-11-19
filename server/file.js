@@ -618,8 +618,18 @@ module.exports = (function () {
         case ".svg":
           new_meta.$type = "image";
           break;
+        // every video the optimizer converts (Exporter.js, _optimizeMedia),
+        // not only those browsers play: thumbs and infos are made for them
+        // too, and apps can offer to convert them
         case ".mp4":
         case ".webm":
+        case ".mov":
+        case ".qt":
+        case ".m4v":
+        case ".mkv":
+        case ".avi":
+        case ".wmv":
+        case ".flv":
           new_meta.$type = "video";
           break;
         case ".obj":
@@ -634,6 +644,16 @@ module.exports = (function () {
         case ".aac":
         case ".m4a":
         case ".ogg":
+        // as for videos: every sound the optimizer converts
+        case ".oga":
+        case ".opus":
+        case ".flac":
+        case ".aif":
+        case ".aiff":
+        case ".amr":
+        case ".wma":
+        case ".ac3":
+        case ".m4r":
           new_meta.$type = "audio";
           break;
         case ".txt":
