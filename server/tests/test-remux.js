@@ -173,4 +173,50 @@ test("with ffmpeg", { skip }, async (t) => {
     });
     assert.ok(!copied, "not copied");
   });
+
+  // as an iPhone writes them: creation_time, and its location in a
+  // QuickTime tag, both read by getVideoMetaData ($date_created, $infos)
+  await t.test("the copy keeps the date and the location", async () => {
+    const tagged = path.join(dir, "tagged.mov");
+    execFileSync(ffmpeg_path, [
+      "-v", "error", "-y", "-i", h264_mov, "-c", "copy",
+      "-metadata", "creation_time=2026-05-04T10:20:30.000000Z",
+      "-metadata", "com.apple.quicktime.location.ISO6709=+48.8566+002.3522+035.000/",
+      "-movflags", "use_metadata_tags",
+      tagged,
+    ]);
+    const destination = path.join(dir, "tagged.mp4");
+    assert.ok(
+      await utils.remuxVideoToMP4IfPossible({ source: tagged, destination })
+    );
+    const infos = await utils.getVideoMetaData({ path: destination });
+    assert.strictEqual(
+      infos.creation_time?.toISOString(),
+      "2026-05-04T10:20:30.000Z"
+    );
+    assert.strictEqual(infos.location, "+48.8566+002.3522+035.000/");
+  });
+
+  await t.test("without room for the copy, nothing is written", async (t) => {
+    t.mock.method(fs.promises, "statfs", async () => ({
+      bavail: 1,
+      bsize: 4096,
+    }));
+    const destination = path.join(dir, "no-room.mp4");
+    assert.strictEqual(
+      await utils.remuxVideoToMP4IfPossible({ source: h264_mov, destination }),
+      false
+    );
+    assert.ok(!fs.existsSync(destination));
+    assert.ok(verbose_logs.some((m) => m.includes("not enough room")));
+  });
+
+  await t.test("an MPEG-4 Part 2 video is not copied", async () => {
+    const destination = path.join(dir, "mpeg4.mp4");
+    assert.strictEqual(
+      await utils.remuxVideoToMP4IfPossible({ source: mpeg4_mov, destination }),
+      false
+    );
+    assert.ok(!fs.existsSync(destination));
+  });
 });

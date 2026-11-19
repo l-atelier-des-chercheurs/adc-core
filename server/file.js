@@ -6,6 +6,10 @@ const utils = require("./utils"),
   archives = require("./archives"),
   cache = require("./cache");
 
+// uploaded videos copied into an MP4 when their streams allow
+// (_remuxUploadedVideo); MP4s already are, and WebM can't hold H.264
+const REMUX_ON_UPLOAD_EXTS = [".mov", ".qt", ".m4v", ".mkv"];
+
 module.exports = (function () {
   // path_to_meta -> promise of meta, for reads in progress
   const pending_reads = new Map();
@@ -533,6 +537,14 @@ module.exports = (function () {
     let { name, ext } = path.parse(originalFilename);
     const filename_without_ext = utils.slug(name);
 
+    const remuxed = await _remuxUploadedVideo({
+      path_to_folder,
+      filename_without_ext,
+      ext,
+      path_to_temp_file,
+    });
+    if (remuxed) return remuxed;
+
     const new_filename = await _preventFileOverride({
       path_to_folder,
       original_filename: filename_without_ext + ext,
@@ -540,6 +552,39 @@ module.exports = (function () {
     const new_path = utils.getPathToUserContent(path_to_folder, new_filename);
 
     await fs.move(path_to_temp_file, new_path, { overwrite: false });
+    return { new_path, new_filename };
+  }
+
+  // A video uploaded in another container than MP4, whose streams browsers
+  // already play (H.264 + AAC: an iPhone video picked from the photo
+  // library in Safari comes as such a .MOV): copied into an MP4 at once,
+  // without loss, instead of kept as it is, which not every browser plays.
+  // Done before its meta exists: one media, never a duplicate. Streamed,
+  // so light on memory (a Raspberry Pi is fine): it costs the time to
+  // write the file once more. Kept as it is when it can't be copied
+  // (another video, not enough room, a failed copy): to be converted on
+  // demand (optimize_media). Off with settings.remuxVideosOnUpload: false
+  async function _remuxUploadedVideo({
+    path_to_folder,
+    filename_without_ext,
+    ext,
+    path_to_temp_file,
+  }) {
+    if (global.settings?.remuxVideosOnUpload === false) return null;
+    if (!REMUX_ON_UPLOAD_EXTS.includes(ext.toLowerCase())) return null;
+
+    const new_filename = await _preventFileOverride({
+      path_to_folder,
+      original_filename: filename_without_ext + ".mp4",
+    });
+    const new_path = utils.getPathToUserContent(path_to_folder, new_filename);
+    const remuxed = await utils.remuxVideoToMP4IfPossible({
+      source: path_to_temp_file,
+      destination: new_path,
+    });
+    if (!remuxed) return null;
+
+    await fs.remove(path_to_temp_file);
     return { new_path, new_filename };
   }
 

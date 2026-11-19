@@ -39,6 +39,9 @@ const MEDIA_EXTS_FOR_CREATION_DATE = new Set([
   ".flac",
 ]);
 
+// remuxVideoToMP4IfPossible: room left on the disk beyond the copy itself
+const REMUX_FREE_SPACE_MARGIN = 100 * 1024 * 1024;
+
 function toPositiveNumber(value) {
   const n = Number(value);
   return Number.isFinite(n) && n > 0 ? n : undefined;
@@ -54,6 +57,10 @@ function parseFrameRate(rate) {
 
 function coerceToValidDate(value) {
   if (value === null || value === undefined || value === "") return null;
+  // a tag written twice comes as "a;b" (an MP4 remuxed with its QuickTime
+  // tags, remuxToMP4): the first one
+  if (typeof value === "string" && value.includes(";"))
+    value = value.split(";")[0].trim();
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return null;
   // Ignore clearly bogus / epoch-zero dates
@@ -234,7 +241,13 @@ module.exports = function createMediaUtils(API) {
       );
     },
 
-    // the streams given by getRemuxableStreams, copied into an MP4
+    // The streams given by getRemuxableStreams, copied into an MP4, with
+    // the file's tags: its creation_time (read for $date_created), and with
+    // use_metadata_tags an iPhone's QuickTime ones, its location
+    // (com.apple.quicktime.location.ISO6709, read for $infos.location)
+    // included; without it, the MP4 muxer drops them. It also writes
+    // creation_time twice ("a;b"): coerceToValidDate takes the first.
+    // Streamed: a few tens of MB of memory, whatever the file's size
     remuxToMP4({ source, destination, video_index, audio_index }) {
       return new Promise((resolve, reject) => {
         const maps = [`-map 0:${video_index}`];
@@ -242,7 +255,12 @@ module.exports = function createMediaUtils(API) {
         ffmpegTracker
           .createTrackedFfmpeg()
           .input(source)
-          .outputOptions([...maps, "-c copy", "-movflags +faststart"])
+          .outputOptions([
+            ...maps,
+            "-c copy",
+            "-map_metadata 0",
+            "-movflags +faststart+use_metadata_tags",
+          ])
           .toFormat("mp4")
           .on("start", (command_line) =>
             dev.logverbose("FFmpeg remux command: " + command_line)
@@ -254,6 +272,56 @@ module.exports = function createMediaUtils(API) {
           })
           .save(destination);
       });
+    },
+
+    /**
+     * A video copied into an MP4 when its streams already play in browsers
+     * (getRemuxableStreams), and when there is room for the copy next to
+     * the original: true once done. False otherwise (another video, not
+     * enough room, a failed copy), with nothing left at destination: the
+     * caller keeps the original, or encodes it. For uploads (file.js) and
+     * conversions (optimizer.js)
+     */
+    async remuxVideoToMP4IfPossible({ source, destination }) {
+      let streams;
+      try {
+        streams = API.getRemuxableStreams(await API.probeMedia(source));
+      } catch (err) {
+        dev.logverbose(`REMUX • can't probe ${source}: ${err?.message}`);
+        return false;
+      }
+      if (!streams) {
+        dev.logverbose(`REMUX • ${source} must be encoded again`);
+        return false;
+      }
+
+      // the copy is as big as the original, plus a margin
+      try {
+        const { size } = await fs.stat(source);
+        const { bavail, bsize } = await fs.promises.statfs(
+          path.dirname(destination)
+        );
+        if (bavail * bsize < size + REMUX_FREE_SPACE_MARGIN) {
+          dev.logverbose(`REMUX • not enough room to copy ${source}`);
+          return false;
+        }
+      } catch (err) {
+        dev.logverbose(`REMUX • can't check the room left: ${err?.message}`);
+        return false;
+      }
+
+      const started = Date.now();
+      try {
+        await API.remuxToMP4({ source, destination, ...streams });
+      } catch (err) {
+        dev.logverbose(`REMUX • copying ${source} failed: ${err?.message}`);
+        await fs.promises.rm(destination, { force: true });
+        return false;
+      }
+      dev.logverbose(
+        `REMUX • ${source} copied into an MP4 in ${Date.now() - started}ms`
+      );
+      return true;
     },
 
     convertVideoToStandardFormat({
