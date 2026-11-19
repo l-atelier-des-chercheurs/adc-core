@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Optimizing a video (`optimize_media`) with nothing asked but a browser-safe file (no size, bitrate or trim) no longer encodes it again when its streams already are: H.264 8-bit 4:2:0 video, with AAC or MP3 sound or none, is copied into an MP4 (`-c copy`, `-movflags +faststart`), in a fraction of a second and without loss. Asked by Les Cahiers du Studio: an iPhone video picked from the photo library in Safari comes as such a `.MOV` (iOS encodes it in H.264 + AAC, in a QuickTime container). Only the video and sound are kept, not Apple's metadata and timecode tracks. Anything else (HEVC, 10-bit, other sound), or a failed copy, is encoded as before.
+- `utils.getRemuxableStreams(metadata)`, `utils.probeMedia(path)` and `utils.remuxToMP4(…)`, for the conversion at upload to come (TODO.md).
+- Tests (`server/tests/test-remux.js`, in `npm test`): which ffprobe metadata can be copied; with ffmpeg / ffprobe (ffmpeg-static's, or found in the PATH; skipped without them), an H.264 + AAC `.mov` is copied, an MPEG-4 Part 2 one is encoded, and so is an H.264 one asked a size.
+
 ## 0.2.10
 
 - PDF thumbs without `pdftoppm` (or when it fails) are no longer blank grey. Puppeteer's clipped screenshot left out what Chrome's PDF viewer draws: it now takes it with `captureBeyondViewport: false`.

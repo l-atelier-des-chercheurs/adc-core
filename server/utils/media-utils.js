@@ -202,6 +202,60 @@ module.exports = function createMediaUtils(API) {
       return await sharp(image_buffer).toFile(full_path_to_thumb);
     },
 
+    /**
+     * Whether a video can become a browser-safe MP4 without being encoded
+     * again: its streams copied as they are into an MP4 container
+     * (`-c copy`), in a fraction of a second and without loss. From
+     * ffprobe's metadata: H.264 video, 8-bit 4:2:0 (High 10 or 4:2:2 play
+     * badly in browsers), and AAC or MP3 sound, or none. An iPhone video
+     * picked from the photo library in Safari is one: iOS encodes it in
+     * H.264 + AAC, but in a QuickTime (.MOV) container.
+     * Returns the indexes of the streams to keep, or null: the other streams
+     * (Apple's metadata and timecode tracks, cover art) are left out.
+     */
+    getRemuxableStreams(metadata) {
+      const streams = metadata?.streams || [];
+      const video = streams.find(
+        (s) => s.codec_type === "video" && !s.disposition?.attached_pic
+      );
+      if (!video || video.codec_name !== "h264") return null;
+      if (!["yuv420p", "yuvj420p"].includes(video.pix_fmt)) return null;
+      const audio = streams.find((s) => s.codec_type === "audio");
+      if (audio && !["aac", "mp3"].includes(audio.codec_name)) return null;
+      return { video_index: video.index, audio_index: audio?.index };
+    },
+
+    probeMedia(media_path) {
+      return new Promise((resolve, reject) =>
+        ffmpegTracker.ffprobe(media_path, (err, metadata) => {
+          if (err || !metadata) reject(err || new Error("no_metadata"));
+          else resolve(metadata);
+        })
+      );
+    },
+
+    // the streams given by getRemuxableStreams, copied into an MP4
+    remuxToMP4({ source, destination, video_index, audio_index }) {
+      return new Promise((resolve, reject) => {
+        const maps = [`-map 0:${video_index}`];
+        if (audio_index !== undefined) maps.push(`-map 0:${audio_index}`);
+        ffmpegTracker
+          .createTrackedFfmpeg()
+          .input(source)
+          .outputOptions([...maps, "-c copy", "-movflags +faststart"])
+          .toFormat("mp4")
+          .on("start", (command_line) =>
+            dev.logverbose("FFmpeg remux command: " + command_line)
+          )
+          .on("end", () => resolve())
+          .on("error", (err, stdout, stderr) => {
+            dev.logverbose("FFmpeg remux stderr: " + stderr);
+            reject(err);
+          })
+          .save(destination);
+      });
+    },
+
     convertVideoToStandardFormat({
       source,
       destination,

@@ -145,8 +145,26 @@ module.exports = (function () {
 
           return audioDestination;
         } else {
-          // For video, use normal processing
           const videoDestination = destination + ".mp4";
+
+          // nothing asked but a browser-safe file: copied into an MP4
+          // when its streams already are (_tryRemux), encoded otherwise
+          const only_format =
+            trim_start === undefined &&
+            trim_end === undefined &&
+            !image_width &&
+            !image_height &&
+            !video_bitrate &&
+            !audio_bitrate;
+          if (
+            only_format &&
+            (await _tryRemux({
+              source,
+              destination: videoDestination,
+              reportProgress,
+            }))
+          )
+            return videoDestination;
 
           await utils.convertVideoToStandardFormat({
             source,
@@ -168,6 +186,38 @@ module.exports = (function () {
       }
     },
   };
+
+  // An MP4 from a video whose streams browsers already play (H.264 + AAC
+  // in a .MOV, from an iPhone): copied, not encoded again. False when it
+  // can't be, or fails: the caller then encodes it
+  async function _tryRemux({ source, destination, reportProgress }) {
+    let streams;
+    try {
+      streams = utils.getRemuxableStreams(await utils.probeMedia(source));
+    } catch (err) {
+      dev.logverbose(`OPTIMIZER • can't probe ${source}: ${err?.message}`);
+      return false;
+    }
+    if (!streams) {
+      dev.logverbose(`OPTIMIZER • ${source} must be encoded again`);
+      return false;
+    }
+    const started = Date.now();
+    try {
+      await utils.remuxToMP4({ source, destination, ...streams });
+      dev.logverbose(
+        `OPTIMIZER • ${source} copied into an MP4 in ${Date.now() - started}ms`
+      );
+      reportProgress?.(100);
+      return true;
+    } catch (err) {
+      dev.logverbose(
+        `OPTIMIZER • copying ${source} into an MP4 failed, encoding it: ${err?.message}`
+      );
+      await fs.promises.rm(destination, { force: true });
+      return false;
+    }
+  }
 
   async function _saveImage({
     source,
