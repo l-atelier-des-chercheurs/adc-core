@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.13
+
+- `GET /_api2/_version` answers `{ version }`, the app's version (`package.json`, as in `window.app_infos.version`), never cached, without any password or token (pages already show it). Asked by Les Cahiers du Studio: an open page asks it when its socket reconnects, and offers to reload when the server was updated meanwhile.
+
+## 0.2.12
+
+- STL/OBJ thumbs can be framed: `$thumb_view` takes, after its 9 rotation values, 3 optional ones, `[zoom, pan_x, pan_y]`. `zoom` scales the model fitted to its bounds (1: fitted, as before; must be above 0); `pan_x` and `pan_y` move the point shown at the centre of the thumb away from the centre of the model's bounds, in view space (x right, y up), in half-extents of these bounds. Asked by Les Cahiers du Studio, whose 3D viewer saves the view as seen, zoom and pan included. A 9-value `$thumb_view` gives the same thumbs as before; one of another length, or with a zoom of 0 or less, is ignored (default angle).
+
 ## 0.2.11
 
 - Optimizing a video (`optimize_media`) with nothing asked but a browser-safe file (no size, bitrate or trim) no longer encodes it again when its streams already are: H.264 8-bit 4:2:0 video, with AAC or MP3 sound or none, is copied into an MP4 (`-c copy`, `-movflags +faststart`), in a fraction of a second and without loss. Asked by Les Cahiers du Studio: an iPhone video picked from the photo library in Safari comes as such a `.MOV` (iOS encodes it in H.264 + AAC, in a QuickTime container). Only the video and sound are kept, not Apple's metadata and timecode tracks. Anything else (HEVC, 10-bit, other sound), or a failed copy, is encoded as before.
@@ -7,7 +15,6 @@
 - The copy keeps the file's tags (`-map_metadata 0`, `-movflags use_metadata_tags`): its `creation_time` (`$date_created`) and an iPhone's QuickTime tags, its location (`$infos.location`) included, which the MP4 muxer dropped otherwise. It then writes `creation_time` twice (`"a;b"`): dates read from ffprobe take the first.
 - `utils.getRemuxableStreams(metadata)`, `utils.probeMedia(path)`, `utils.remuxToMP4(…)` and `utils.remuxVideoToMP4IfPossible({ source, destination })` (probe, room check, copy, clean up on failure), shared by uploads and `optimize_media`.
 - Tests (`server/tests/test-remux.js`, in `npm test`): which ffprobe metadata can be copied; with ffmpeg / ffprobe (ffmpeg-static's, or found in the PATH; skipped without them), an H.264 + AAC `.mov` is copied, an MPEG-4 Part 2 one is encoded, and so is an H.264 one asked a size; the copy keeps the date and the location; nothing is written without room for it. The upload path itself (`file.js`, `_remuxUploadedVideo`) has no test.
-- STL/OBJ thumbs can be framed: `$thumb_view` takes, after its 9 rotation values, 3 optional ones, `[zoom, pan_x, pan_y]`. `zoom` scales the model fitted to its bounds (1: fitted, as before; must be above 0); `pan_x` and `pan_y` move the point shown at the centre of the thumb away from the centre of the model's bounds, in view space (x right, y up), in half-extents of these bounds. Asked by Les Cahiers du Studio, whose 3D viewer saves the view as seen, zoom and pan included. A 9-value `$thumb_view` gives the same thumbs as before; one of another length, or with a zoom of 0 or less, is ignored (default angle).
 
 ## 0.2.10
 

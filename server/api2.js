@@ -42,6 +42,9 @@ module.exports = (function () {
     );
     app.get("/_api2/_authCheck", _checkGeneralPassword);
     app.get("/_api2/_tokenCheck", _checkToken);
+    // the app's version, as in its pages (window.app_infos.version): for
+    // open pages to see that the server was updated, on reconnecting
+    app.get("/_api2/_version", _getVersion);
 
     app.get("/_api2/_storagePath", _onlyAdmins, _getStoragePath);
     app.patch("/_api2/_storagePath", _onlyAdmins, _setStoragePath);
@@ -498,6 +501,11 @@ module.exports = (function () {
     await _generalPasswordCheck(req, res);
     return res.status(200).json({ code: "success" });
   }
+  function _getVersion(req, res) {
+    res.set("Cache-Control", "no-store");
+    res.json({ version: global.appInfos.version });
+  }
+
   async function _checkToken(req, res, next) {
     dev.logapi();
 
