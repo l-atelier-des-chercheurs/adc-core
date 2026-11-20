@@ -7,10 +7,10 @@ module.exports = (function () {
   const API = {
     /**
      * Send an email using SMTP settings from settings.json
-     * @param {Object} options - { to, subject, text, html }
+     * @param {Object} options - { to, subject, text, html, replyTo }
      * @returns {Promise}
      */
-    async sendMail({ to, subject, text = "", html = "" }) {
+    async sendMail({ to, subject, text = "", html = "", replyTo }) {
       if (!global.settings.mailer?.host) {
         const err = new Error("Mailer settings are not defined");
         err.code = "mailer_settings_not_defined";
@@ -43,6 +43,7 @@ module.exports = (function () {
         subject,
         text,
         html,
+        ...(replyTo && { replyTo }),
       });
 
       console.log("Mail sent:", info.messageId);

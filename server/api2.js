@@ -14,6 +14,8 @@ const folder = require("./folder"),
   users = require("./users"),
   sessionStore = require("./sessionStore"),
   journal = require("./journal"),
+  feedback = require("./feedback"),
+  mail = require("./mail"),
   history = require("./history"),
   recoverPassword = require("./recover-password"),
   dev = require("./dev-log");
@@ -45,6 +47,9 @@ module.exports = (function () {
     // the app's version, as in its pages (window.app_infos.version): for
     // open pages to see that the server was updated, on reconnecting
     app.get("/_api2/_version", _getVersion);
+    // feedback on the app: sent by anyone, read by admins (feedback.js)
+    app.post("/_api2/_feedback", _generalPasswordCheck, _addFeedback);
+    app.get("/_api2/_feedback", _onlyAdmins, _getFeedback);
 
     app.get("/_api2/_storagePath", _onlyAdmins, _getStoragePath);
     app.patch("/_api2/_storagePath", _onlyAdmins, _setStoragePath);
@@ -501,6 +506,66 @@ module.exports = (function () {
     await _generalPasswordCheck(req, res);
     return res.status(200).json({ code: "success" });
   }
+  async function _addFeedback(req, res) {
+    dev.logapi();
+    if (feedback.isRateLimited({ ip: req.ip }))
+      return res.status(429).send({ code: "too_much_feedback" });
+    try {
+      const token_path = auth.extractAndCheckToken({ req });
+      const entry = await feedback.add({ input: req.body, token_path });
+      journal.log({
+        from: "api2",
+        event: "feedback_sent",
+        details: { id: entry.id, type: entry.type, author_path: token_path },
+      });
+      // stored: the email doesn't hold the answer, nor fail it
+      _mailFeedback(entry);
+      return res.status(200).json({ id: entry.id });
+    } catch (err) {
+      if (err.code) return res.status(400).send({ code: err.code });
+      dev.error(err.message);
+      return res.status(500).send({ code: "failed_to_save_feedback" });
+    }
+  }
+
+  // to the instance's contact address, with a mailer set in settings.json
+  async function _mailFeedback(entry) {
+    try {
+      if (!global.settings.mailer?.host) return;
+      const { contactmail_of_instance } = await settings.get();
+      if (!contactmail_of_instance) return;
+      const { subject, text, replyTo } = feedback.mailFor(entry, {
+        app_name: global.appInfos.productName,
+        public_url: utils.getPublicUrl(),
+      });
+      await mail.sendMail({
+        to: contactmail_of_instance,
+        subject,
+        text,
+        replyTo,
+      });
+      dev.log(`Feedback ${entry.id} mailed to the instance's contact`);
+    } catch (err) {
+      dev.error(`Feedback ${entry.id} not mailed: ${err.message}`);
+      journal.log({
+        from: "api2",
+        event: "feedback_mail_failed",
+        details: { id: entry.id, error: err.code || err.message },
+      });
+    }
+  }
+
+  async function _getFeedback(req, res) {
+    dev.logapi();
+    try {
+      res.set("Cache-Control", "no-store");
+      return res.json(await feedback.list());
+    } catch (err) {
+      dev.error(err.message);
+      return res.status(500).send({ code: "failed_to_read_feedback" });
+    }
+  }
+
   function _getVersion(req, res) {
     res.set("Cache-Control", "no-store");
     res.json({ version: global.appInfos.version });

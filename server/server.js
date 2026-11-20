@@ -12,6 +12,7 @@ const sockets = require("./sockets"),
   journal = require("./journal"),
   serverRTC = require("./serverRTC.js"),
   dev = require("./dev-log"),
+  staticGuard = require("./static-guard"),
   { loadHttpsOptions } = require("./load-ssl");
 // cors_for_ressources = require("./cors_for_ressources"),
 
@@ -19,6 +20,23 @@ module.exports = function () {
   dev.logverbose("Starting server 1");
 
   const app = express();
+
+  // behind a reverse proxy (nginx…), req.ip is the visitor's, read from
+  // X-Forwarded-For, but only from a proxy trusted here. By default, one on
+  // this machine or on a private network ("loopback, uniquelocal"): nginx
+  // in front of the app, or in front of its Docker container (172.x). A
+  // visitor reaching the app straight from the internet can't forge it.
+  // Without it, every visitor shares the proxy's IP: the API's slow down
+  // (below) and the feedback limit apply to all of them together.
+  // req.ip only counts for these limits, never for rights.
+  // settings.json: "trust_proxy", any value Express takes ("loopback", an
+  // IP or a subnet, a number of hops…), false to never trust it.
+  // true would take the header from anyone, who could then pick their IP
+  // (express-rate-limit says so in the logs): taken as 1, one proxy in front
+  let trust_proxy = global.settings.trust_proxy;
+  if (trust_proxy === undefined) trust_proxy = "loopback, uniquelocal";
+  if (trust_proxy === true) trust_proxy = 1;
+  app.set("trust proxy", trust_proxy);
 
   app.use(compression());
 
@@ -40,7 +58,8 @@ module.exports = function () {
     next();
   });
 
-  // Rate limiting middleware, slow down API requests after the limit is reached
+  // Rate limiting middleware, slow down API requests after the limit is
+  // reached: per visitor, as req.ip says (trust proxy, above)
   const apiSpeedLimiter = slowDown({
     windowMs: 1 * 60 * 1000,
     delayAfter: 60,
@@ -93,20 +112,10 @@ module.exports = function () {
   app.set("view engine", "pug"); //View engine is Pug
 
   // prevent access to internal/sensitive files that live in content root
+  // (meta.txt, tokens.json, journal/, feedback/), however their path is
+  // written (static-guard.js)
   app.use(function (req, res, next) {
-    let normalized_path = req.path || req.url || "";
-    try {
-      normalized_path = decodeURIComponent(normalized_path);
-    } catch (err) {}
-
-    const is_meta_file = normalized_path.includes("/meta.txt");
-    const is_tokens_file =
-      normalized_path === "/tokens.json" ||
-      normalized_path.endsWith("/tokens.json");
-    const is_journal_folder =
-      normalized_path === "/journal" || normalized_path.startsWith("/journal/");
-
-    if (is_meta_file || is_tokens_file || is_journal_folder)
+    if (staticGuard.isInternalPath(req.path))
       res.status(403).send(`Access not allowed.`);
     // TODO: allow loading medias from domains that admin has allowed (set to ”domain1”, ”domain2”, ”domain3”, etc., or to "all")
     // else if (!(cors_for_ressources.allowed(req, res, next)))
