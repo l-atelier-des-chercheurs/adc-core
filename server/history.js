@@ -1,5 +1,6 @@
 const path = require("path"),
-  fs = require("fs-extra");
+  fs = require("fs-extra"),
+  writeFileAtomic = require("write-file-atomic");
 
 const utils = require("./utils"),
   dev = require("./dev-log");
@@ -20,8 +21,31 @@ module.exports = (function () {
     "$infos",
   ]);
 
-  // Keys whose value must never be stored — presence in the log is enough.
-  const SENSITIVE_KEYS = new Set(["$password"]);
+  // Keys whose value must never be stored — presence in the log is enough:
+  // any password, a folder's ($password) as the instance's settings'
+  // (general_password, signup_password, in the root folder's history)
+  const isSensitive = (key) => /password/i.test(key);
+
+  // an entry without the sensitive values, and whether it had any
+  function _withoutSensitive(entry) {
+    if (!entry || typeof entry !== "object") return { entry, changed: false };
+    if (
+      entry.event === "updated" &&
+      isSensitive(entry.field) &&
+      entry.value !== null
+    )
+      return { entry: { ...entry, value: null }, changed: true };
+    if (entry.event === "created" && entry.fields) {
+      const keys = Object.keys(entry.fields).filter(
+        (key) => isSensitive(key) && entry.fields[key] !== null
+      );
+      if (keys.length === 0) return { entry, changed: false };
+      const fields = { ...entry.fields };
+      for (const key of keys) fields[key] = null;
+      return { entry: { ...entry, fields }, changed: true };
+    }
+    return { entry, changed: false };
+  }
 
   const API = {
     META_ARCHIVE_FILENAME,
@@ -34,7 +58,7 @@ module.exports = (function () {
       const fields = {};
       for (const [key, value] of Object.entries(meta || {})) {
         if (EXCLUDED_KEYS.has(key)) continue;
-        fields[key] = SENSITIVE_KEYS.has(key) ? null : value;
+        fields[key] = isSensitive(key) ? null : value;
       }
       if (Object.keys(fields).length === 0) return;
 
@@ -61,7 +85,7 @@ module.exports = (function () {
             ts,
             event: "updated",
             field: key,
-            value: SENSITIVE_KEYS.has(key) ? null : value,
+            value: isSensitive(key) ? null : value,
             author: author_path || "",
           })
         );
@@ -70,7 +94,8 @@ module.exports = (function () {
       await Promise.all(writes);
     },
 
-    // Returns all entries in chronological order (oldest first).
+    // Returns all entries in chronological order (oldest first), without
+    // the passwords older versions stored.
     getEntries: async ({ path_to_folder }) => {
       dev.logfunction({ path_to_folder });
 
@@ -82,7 +107,7 @@ module.exports = (function () {
           .filter(Boolean)
           .map((line) => {
             try {
-              return JSON.parse(line);
+              return _withoutSensitive(JSON.parse(line)).entry;
             } catch {
               return null;
             }
@@ -91,6 +116,35 @@ module.exports = (function () {
       } catch {
         return [];
       }
+    },
+
+    // Blanks the passwords older versions stored in a folder's history (the
+    // root folder's had the instance's general_password and signup_password
+    // in clear). Called at startup, before any request: nothing else writes
+    // to it meanwhile. Returns how many entries were blanked.
+    removeSensitive: async ({ path_to_folder }) => {
+      const full_path = _getFullPath(path_to_folder);
+      let content;
+      try {
+        content = await fs.readFile(full_path, "utf8");
+      } catch {
+        return 0;
+      }
+
+      let blanked = 0;
+      const lines = content.split("\n").map((line) => {
+        if (!line) return line;
+        try {
+          const { entry, changed } = _withoutSensitive(JSON.parse(line));
+          if (!changed) return line;
+          blanked++;
+          return JSON.stringify(entry);
+        } catch {
+          return line;
+        }
+      });
+      if (blanked > 0) await writeFileAtomic(full_path, lines.join("\n"));
+      return blanked;
     },
   };
 

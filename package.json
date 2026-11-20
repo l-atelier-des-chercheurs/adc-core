@@ -21,7 +21,7 @@
     "adc-electron": "electron/cli.js"
   },
   "scripts": {
-    "test": "node --test server/tests/test-content-lock.js server/tests/test-meta-utils.js server/tests/test-pdf-thumbs.js server/tests/test-remux.js server/tests/test-feedback.js server/tests/test-static-guard.js",
+    "test": "node --test server/tests/test-content-lock.js server/tests/test-meta-utils.js server/tests/test-pdf-thumbs.js server/tests/test-remux.js server/tests/test-feedback.js server/tests/test-static-guard.js server/tests/test-history.js",
     "test:browser": "node --test server/tests/test-pdf-thumbs-browser.js",
     "preversion": "node scripts/changelog-release.js check && npm test",
     "version": "node scripts/changelog-release.js release && git add CHANGELOG.md",

@@ -13,6 +13,9 @@ test("the server's own files are refused", () => {
     "/journal/",
     "/journal/2026-11-20_16-36-13.jsonl",
     "/feedback/2026-11-20_11-00-00_a1b2c3.json",
+    "/meta_archive.jsonl",
+    "/spaces/espace-de-test/meta_archive.jsonl",
+    "/archives/spaces/a/texte/1732112345678.md",
   ])
     assert.equal(isInternalPath(p), true, p);
 });
@@ -34,6 +37,8 @@ test("however their path is written", () => {
     "/TOKENS~1.JSO",
     "/meta.txt.",
     "/journal./a.jsonl",
+    "/spaces/a/META_ARCHIVE.jsonl",
+    "//archives/a.md",
   ])
     assert.equal(isInternalPath(p), true, p);
 });
@@ -44,6 +49,7 @@ test("media, pages and the API are not", () => {
     "/projects/a/image.jpg",
     "/projects/journal/a.jpg",
     "/projects/a/feedback.pdf",
+    "/projects/archives/a.jpg",
     "/logo.png",
     "/_api2/_feedback",
     "/_client/build.js",

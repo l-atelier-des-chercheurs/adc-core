@@ -13,6 +13,7 @@ const server = require("./server"),
   auth = require("./auth"),
   mail = require("./mail"),
   journal = require("./journal"),
+  history = require("./history"),
   ffmpegTracker = require("./ffmpeg-tracker"),
   contentFolder = require("./content-folder"),
   contentLock = require("./content-lock"),
@@ -220,6 +221,20 @@ async function setupApp() {
   });
 
   auth.createSuperadminToken();
+
+  // older versions kept the instance's general_password and signup_password
+  // in clear in the settings' history (history.js): blanked, before any
+  // request can read or append to it
+  try {
+    const blanked = await history.removeSensitive({ path_to_folder: "." });
+    if (blanked > 0)
+      journal.log({
+        message: `Passwords removed from the settings' history: ${blanked}`,
+        from: "main2",
+      });
+  } catch (err) {
+    dev.error(`Settings' history not cleaned: ${err.message}`);
+  }
 
   // Initialize bin cleanup module (runs periodically to remove old bin items)
   await binCleanup.init();

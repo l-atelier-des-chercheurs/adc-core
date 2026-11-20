@@ -2,8 +2,10 @@ const path = require("path");
 
 // The content folder is served as static files (server.js), except what the
 // server keeps for itself: the instance's and the folders' meta.txt (the
-// instance's holds its settings), the tokens (tokens.json), the journal and
-// the feedback (feedback.js).
+// instance's holds its settings), their history (meta_archive.jsonl,
+// history.js: admins only, via the API), the tokens (tokens.json), the
+// journal, the feedback (feedback.js) and the texts' previous versions
+// (archives/, archives.js: via the API, with the file).
 // The check is made on the path as the disk will find it, not as it was
 // written, so that another spelling of it doesn't get through:
 // - "//journal/x", "/a/../journal/x", "/a/..%2Fjournal/x": express.static
@@ -32,8 +34,11 @@ module.exports = {
     return (
       first === "journal" ||
       first === "feedback" ||
+      first === "archives" ||
       // meta.txt, and write-file-atomic's temporary copies of it
-      segments.some((s) => s.startsWith("meta.txt")) ||
+      segments.some(
+        (s) => s.startsWith("meta.txt") || s.startsWith("meta_archive.jsonl")
+      ) ||
       last === "tokens.json" ||
       /^tokens~\d+\.jso$/.test(last)
     );
