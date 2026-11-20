@@ -62,12 +62,14 @@ module.exports = (function () {
       }
       if (Object.keys(fields).length === 0) return;
 
-      await _appendLine(path_to_folder, {
-        ts: new Date().toISOString(),
-        event: "created",
-        fields,
-        author: author_path || "",
-      });
+      await _appendLines(path_to_folder, [
+        {
+          ts: new Date().toISOString(),
+          event: "created",
+          fields,
+          author: author_path || "",
+        },
+      ]);
     },
 
     // Called on every meta update. Each changed user-editable field gets its
@@ -76,22 +78,20 @@ module.exports = (function () {
       dev.logfunction({ path_to_folder });
 
       const ts = new Date().toISOString();
-      const writes = [];
+      const entries = Object.entries(data || {})
+        .filter(([key]) => !EXCLUDED_KEYS.has(key))
+        .map(([key, value]) => ({
+          ts,
+          event: "updated",
+          field: key,
+          value: isSensitive(key) ? null : value,
+          author: author_path || "",
+        }));
+      if (entries.length === 0) return;
 
-      for (const [key, value] of Object.entries(data || {})) {
-        if (EXCLUDED_KEYS.has(key)) continue;
-        writes.push(
-          _appendLine(path_to_folder, {
-            ts,
-            event: "updated",
-            field: key,
-            value: isSensitive(key) ? null : value,
-            author: author_path || "",
-          })
-        );
-      }
-
-      await Promise.all(writes);
+      // one write, in the fields' order: one append per field, in parallel,
+      // landed in any order (it differs between macOS and Linux)
+      await _appendLines(path_to_folder, entries);
     },
 
     // Returns all entries in chronological order (oldest first), without
@@ -152,10 +152,14 @@ module.exports = (function () {
     return utils.getPathToUserContent(path_to_folder, META_ARCHIVE_FILENAME);
   }
 
-  async function _appendLine(path_to_folder, entry) {
+  async function _appendLines(path_to_folder, entries) {
     const full_path = _getFullPath(path_to_folder);
     await fs.ensureDir(path.dirname(full_path));
-    await fs.appendFile(full_path, JSON.stringify(entry) + "\n", "utf8");
+    await fs.appendFile(
+      full_path,
+      entries.map((entry) => JSON.stringify(entry) + "\n").join(""),
+      "utf8"
+    );
   }
 
   return API;
