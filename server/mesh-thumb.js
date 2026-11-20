@@ -18,12 +18,17 @@ const LIGHTS = [
 const BASE_COLOR = [0.86, 0.87, 0.89];
 
 module.exports = {
-  // 3x3 rotation, row-major, from model to view space (camera looks down -z)
+  // 3x3 rotation, row-major, from model to view space (camera looks down -z),
+  // optionally followed by a framing: [zoom, pan_x, pan_y]. zoom scales the
+  // fitted model (1: fitted), pan moves the point shown at the centre of the
+  // image away from the centre of the model's bounds, in view space, in
+  // half-extents of these bounds (x right, y up)
   isValidViewMatrix(view_matrix) {
     return (
       Array.isArray(view_matrix) &&
-      view_matrix.length === 9 &&
-      view_matrix.every((v) => typeof v === "number" && Number.isFinite(v))
+      (view_matrix.length === 9 || view_matrix.length === 12) &&
+      view_matrix.every((v) => typeof v === "number" && Number.isFinite(v)) &&
+      (view_matrix.length === 9 || view_matrix[9] > 0)
     );
   },
 
@@ -42,7 +47,15 @@ module.exports = {
     const rotation = module.exports.isValidViewMatrix(view_matrix)
       ? view_matrix
       : rotationMatrix(ROTATION);
-    const pixels = render({ positions, size, rotation });
+    const framing =
+      module.exports.isValidViewMatrix(view_matrix) && view_matrix.length === 12
+        ? {
+            zoom: view_matrix[9],
+            pan_x: view_matrix[10],
+            pan_y: view_matrix[11],
+          }
+        : undefined;
+    const pixels = render({ positions, size, rotation, framing });
 
     await fs.ensureDir(require("path").dirname(full_path_to_thumb));
     await sharp(pixels, { raw: { width: size, height: size, channels: 4 } })
@@ -129,7 +142,12 @@ function normalize(v) {
   return [v[0] / l, v[1] / l, v[2] / l];
 }
 
-function render({ positions, size, rotation: r }) {
+function render({
+  positions,
+  size,
+  rotation: r,
+  framing: { zoom = 1, pan_x = 0, pan_y = 0 } = {},
+}) {
   const n = positions.length / 3;
 
   // rotate, then center and fit the rotated bounds in the image
@@ -154,9 +172,13 @@ function render({ positions, size, rotation: r }) {
   if (!min.every(Number.isFinite) || !max.every(Number.isFinite))
     throw new Error("mesh has invalid coordinates");
 
+  const max_extent = Math.max(max[0] - min[0], max[1] - min[1]) / 2 || 1;
+  // the point shown at the centre of the image: the bounds' centre, moved
+  // by the framing's pan
   const center = [0, 1, 2].map((k) => (min[k] + max[k]) / 2);
-  const max_extent = Math.max(max[0] - min[0], max[1] - min[1]) / 2;
-  const scale = (size * FILL) / 2 / (max_extent || 1);
+  center[0] += pan_x * max_extent;
+  center[1] += pan_y * max_extent;
+  const scale = ((size * FILL) / 2 / max_extent) * zoom;
   const half = size / 2;
   for (let i = 0; i < n; i++) {
     pts[i * 3] = half + (pts[i * 3] - center[0]) * scale;
