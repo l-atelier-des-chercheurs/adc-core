@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.14
 
 - Security: the instance's `general_password` and `signup_password` were kept in clear in the settings' history (`<content>/meta_archive.jsonl`, written by `PATCH /_api2/`), and anyone could load it as a static file, without any password: `GET /meta_archive.jsonl`. So could each folder's history (`/<type>/<slug>/meta_archive.jsonl`), which the API shows to the folder's admins only. These files are now refused to static requests, and no history stores a password any more: the value of any field whose name has `password` in it is `null`, as `$password`'s was. At startup, those already in the settings' history are blanked (the journal says how many), and `GET …/_history` leaves out those in other folders'. On an instance reachable by others, change the general password and the signup one after updating: they could be read until now.
 - Security: the texts' previous versions (`<content>/archives/`, with `versioning`) are refused to static requests too. The API still gives them with their file (`$archives`).
