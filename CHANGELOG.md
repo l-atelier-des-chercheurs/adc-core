@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.11
 
 - Optimizing a video (`optimize_media`) with nothing asked but a browser-safe file (no size, bitrate or trim) no longer encodes it again when its streams already are: H.264 8-bit 4:2:0 video, with AAC or MP3 sound or none, is copied into an MP4 (`-c copy`, `-movflags +faststart`), in a fraction of a second and without loss. Asked by Les Cahiers du Studio: an iPhone video picked from the photo library in Safari comes as such a `.MOV` (iOS encodes it in H.264 + AAC, in a QuickTime container). Only the video and sound are kept, not Apple's metadata and timecode tracks. Anything else (HEVC, 10-bit, other sound), or a failed copy, is encoded as before.
 - The same at upload: a `.mov`, `.qt`, `.m4v` or `.mkv` whose streams browsers already play is copied into an MP4 before its meta is made, so the media is an MP4 from the start (one media, no duplicate, nothing to convert later). Streamed, it takes a few tens of MB of memory whatever the file's size (fine on a Raspberry Pi): it only costs writing the file once more. A video that can't be copied (HEVC, another codec), a failed copy, or a disk without room for it (the file's size plus 100 MB), is kept as it is. Apps can turn it off with `remuxVideosOnUpload: false` in their settings.
